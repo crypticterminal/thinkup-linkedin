@@ -27,7 +27,8 @@ Set Live Status to "Live".
 
 Enter your Contact Information.
 
-Set OAuth Redirect URL to "http://yourserver.com/path-to-thinkup-webapp/plugins/linkedin/auth.php".
+Set OAuth Redirect URL to:
+    "http://yourserver.com/path-to-thinkup-webapp/plugins/linkedin/auth.php".
 
 Copy down the LinkedIn-provided API Key and Secret Key.
 

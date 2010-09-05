@@ -1,12 +1,12 @@
 <?php
 /**
- * Twitter API Accessor
- * Accesses the Twitter.com API via OAuth authentication.
+ * LinkedIn API Accessor
+ * Accesses the LinkedIn.com API via OAuth authentication.
  *
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  */
 
-class TwitterAPIAccessorOAuth {
+class LinkedInAPIAccessorOAuth {
     var $available = true;
     var $next_api_reset = null;
     var $cURL_source;
@@ -16,7 +16,7 @@ class TwitterAPIAccessorOAuth {
     var $next_cursor;
     /**
      * Total API errors the crawler should tolerate during a given crawler run
-     * @TODO Set this in the Twitter plugin options area
+     * @TODO Set this in the LinkedIn plugin options area
      * @var int
      */
     var $total_errors_to_tolerate = 3;
@@ -32,7 +32,7 @@ class TwitterAPIAccessorOAuth {
         $this->$oauth_access_token = $oauth_access_token;
         $this->$oauth_access_token_secret = $oauth_access_token_secret;
 
-        $this->to = new TwitterOAuthThinkUp($oauth_consumer_key, $oauth_consumer_secret, $this->$oauth_access_token,
+        $this->to = new LinkedInOAuthThinkUp($oauth_consumer_key, $oauth_consumer_secret, $this->$oauth_access_token,
         $this->$oauth_access_token_secret);
         $this->cURL_source = $this->prepAPI();
     }
@@ -40,9 +40,9 @@ class TwitterAPIAccessorOAuth {
     public function verifyCredentials() {
         //returns user array; -1 if not.
         $auth = $this->cURL_source['credentials'];
-        list($cURL_status, $twitter_data) = $this->apiRequestFromWebapp($auth);
+        list($cURL_status, $linkedin_data) = $this->apiRequestFromWebapp($auth);
         if ($cURL_status == 200) {
-            $user = $this->parseXML($twitter_data);
+            $user = $this->parseXML($linkedin_data);
             return $user[0];
         } else {
             return - 1;
@@ -56,10 +56,10 @@ class TwitterAPIAccessorOAuth {
     }
 
     public function prepAPI() {
-        # Define how to access Twitter API
-        $api_domain = 'https://api.twitter.com/1';
+        # Define how to access LinkedIn API
+        $api_domain = 'https://api.linkedin.com/1';
         $api_format = 'xml';
-        $search_domain = 'http://search.twitter.com';
+        $search_domain = 'http://search.linkedin.com';
         $search_format = 'json';
 
         # Define method paths ... [id] is a placeholder
@@ -84,7 +84,7 @@ class TwitterAPIAccessorOAuth {
             "user_timeline"=>"/statuses/user_timeline/[id]", "show_user"=>"/users/show/[id]", 
             "retweeted_by_me"=>"/statuses/retweeted_by_me", "retweets_of_me"=>"/statuses/retweets_of_me", 
             "retweeted_by"=>"/statuses/[id]/retweeted_by");
-        //http://api.twitter.com/1/statuses/14947487415/retweeted_by.xml
+        //http://api.linkedin.com/1/statuses/14947487415/retweeted_by.xml
         # Construct cURL sources
         foreach ($api_method as $key=>$value) {
             $urls[$key] = $api_domain.$value.".".$api_format;
@@ -152,7 +152,7 @@ class TwitterAPIAccessorOAuth {
             'author_username'=>$p->from_user, 'user_name'=>$p->from_user,
             'in_reply_to_user_id'=>$p->to_user_id, 
             'author_avatar'=>$p->profile_image_url, 'avatar'=>$p->profile_image_url,
-            'in_reply_to_post_id'=>'', 'author_fullname'=>'', 'full_name'=>'', 'source'=>'twitter', 
+            'in_reply_to_post_id'=>'', 'author_fullname'=>'', 'full_name'=>'', 'source'=>'linkedin', 
             'location'=>'', 'url'=>'', 
             'description'=>'', 'is_protected'=>0, 'follower_count'=>0, 'post_count'=>0, 'joined'=>'');
         }
@@ -194,7 +194,7 @@ class TwitterAPIAccessorOAuth {
                             'description'=>$xml->description, 'url'=>$xml->url, 'is_protected'=>$xml->protected , 
                             'follower_count'=>$xml->followers_count, 'friend_count'=>$xml->friends_count, 
                             'post_count'=>$xml->statuses_count, 'favorites_count'=>$xml->favourites_count, 
-                            'joined'=>gmdate("Y-m-d H:i:s", strToTime($xml->created_at)), 'network'=>'twitter');
+                            'joined'=>gmdate("Y-m-d H:i:s", strToTime($xml->created_at)), 'network'=>'linkedin');
                         break;
                     case 'ids':
                         foreach ($xml->children() as $item) {
@@ -227,7 +227,7 @@ class TwitterAPIAccessorOAuth {
                             'in_reply_to_post_id'=>$xml->in_reply_to_status_id, 
                             'in_reply_to_user_id'=>$xml->in_reply_to_user_id, 'source'=>$xml->source, 
                             'geo'=>(isset($georss)?$georss->point:''), 'place'=>$xml->place->full_name, 
-                            'network'=>'twitter');
+                            'network'=>'linkedin');
                         break;
                     case 'users_list':
                         $this->next_cursor = $xml->next_cursor;
@@ -242,7 +242,7 @@ class TwitterAPIAccessorOAuth {
                                 'last_post'=>gmdate("Y-m-d H:i:s", strToTime($item->status->created_at)), 
                                 'pub_date'=>gmdate("Y-m-d H:i:s", strToTime($item->status->created_at)), 
                                 'favorites_count'=>$item->favourites_count, 'post_count'=>$item->statuses_count,
-                                'network'=>'twitter');
+                                'network'=>'linkedin');
                         }
                         break;
                     case 'users':
@@ -258,7 +258,7 @@ class TwitterAPIAccessorOAuth {
                                 'pub_date'=>gmdate("Y-m-d H:i:s", strToTime($item->status->created_at)), 
                                 'favorites_count'=>$item->favourites_count, 'post_count'=>$item->statuses_count, 
                                 'source'=>$item->status->source, 
-                                'in_reply_to_post_id'=>$item->status->in_reply_to_status_id, 'network'=>'twitter');
+                                'in_reply_to_post_id'=>$item->status->in_reply_to_status_id, 'network'=>'linkedin');
                         }
                         break;
                     case 'statuses':
@@ -285,7 +285,7 @@ class TwitterAPIAccessorOAuth {
                                 'in_reply_to_post_id'=>$item->in_reply_to_status_id, 
                                 'in_reply_to_user_id'=>$item->in_reply_to_user_id, 'source'=>$item->source, 
                                 'geo'=>(isset($georss)?$georss->point:''), 'place'=>$item->place->full_name, 
-                                'network'=>'twitter');
+                                'network'=>'linkedin');
                         }
                         break;
                     case 'hash':

@@ -1,15 +1,15 @@
 <?php
 /**
- * Crawler TwitterAPI Accessor, via OAuth
+ * Crawler LinkedInAPI Accessor, via OAuth
  *
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  *
  */
-class CrawlerTwitterAPIAccessorOAuth extends TwitterAPIAccessorOAuth {
+class CrawlerLinkedInAPIAccessorOAuth extends LinkedInAPIAccessorOAuth {
     var $api_calls_to_leave_unmade;
     var $api_calls_to_leave_unmade_per_minute;
     var $available_api_calls_for_crawler = null;
-    var $available_api_calls_for_twitter = null;
+    var $available_api_calls_for_linkedin = null;
     var $api_hourly_limit = null;
     var $archive_limit;
 
@@ -25,7 +25,7 @@ class CrawlerTwitterAPIAccessorOAuth extends TwitterAPIAccessorOAuth {
         $status_message = "";
 
         $account_status = $this->cURL_source['rate_limit'];
-        list($cURL_status, $twitter_data) = $this->apiRequest($account_status);
+        list($cURL_status, $linkedin_data) = $this->apiRequest($account_status);
         $this->available_api_calls_for_crawler++; //status check doesnt' count against balance
 
         if ($cURL_status > 200) {
@@ -34,10 +34,10 @@ class CrawlerTwitterAPIAccessorOAuth extends TwitterAPIAccessorOAuth {
             try {
                 # Parse file
                 $status_message = "Parsing XML data from $account_status ";
-                $status = $this->parseXML($twitter_data);
+                $status = $this->parseXML($linkedin_data);
 
                 if (isset($status['remaining-hits']) && isset($status['hourly-limit']) && isset($status['reset-time'])){
-                    $this->available_api_calls_for_twitter = $status['remaining-hits'];//get this from API
+                    $this->available_api_calls_for_linkedin = $status['remaining-hits'];//get this from API
                     $this->api_hourly_limit = $status['hourly-limit'];//get this from API
                     $this->next_api_reset = $status['reset-time'];//get this from API
                 } else {
@@ -53,7 +53,7 @@ class CrawlerTwitterAPIAccessorOAuth extends TwitterAPIAccessorOAuth {
                 $minutes_left_in_hour = 60 - ($current_time_in_minutes - $next_reset_in_minutes);
 
                 $this->api_calls_to_leave_unmade = $minutes_left_in_hour * $this->api_calls_to_leave_unmade_per_minute;
-                $this->available_api_calls_for_crawler = $this->available_api_calls_for_twitter -
+                $this->available_api_calls_for_crawler = $this->available_api_calls_for_linkedin -
                 round($this->api_calls_to_leave_unmade);
             } catch(Exception $e) {
                 $status_message = 'Could not parse account status: '.$e->getMessage();
@@ -69,7 +69,7 @@ class CrawlerTwitterAPIAccessorOAuth extends TwitterAPIAccessorOAuth {
             $content = $this->to->OAuthRequest($url, 'GET', $args);
             $status = $this->to->lastStatusCode();
 
-            $this->available_api_calls_for_twitter = $this->available_api_calls_for_twitter - 1;
+            $this->available_api_calls_for_linkedin = $this->available_api_calls_for_linkedin - 1;
             $this->available_api_calls_for_crawler = $this->available_api_calls_for_crawler - 1;
             $status_message = "";
             if ($status > 200) {
@@ -103,7 +103,7 @@ class CrawlerTwitterAPIAccessorOAuth extends TwitterAPIAccessorOAuth {
             $logger->logStatus($status_message, get_class($this));
             $status_message = "";
 
-            if ($url != "https://api.twitter.com/1/account/rate_limit_status.xml") {
+            if ($url != "https://api.linkedin.com/1/account/rate_limit_status.xml") {
                 $status_message = $this->getStatus();
                 $logger->logStatus($status_message, get_class($this));
                 $status_message = "";
@@ -118,7 +118,7 @@ class CrawlerTwitterAPIAccessorOAuth extends TwitterAPIAccessorOAuth {
     }
 
     public function getStatus() {
-        return $this->available_api_calls_for_twitter." of ".$this->api_hourly_limit." API calls left this hour; ".
+        return $this->available_api_calls_for_linkedin." of ".$this->api_hourly_limit." API calls left this hour; ".
         round($this->available_api_calls_for_crawler)." for crawler until ".
         date('H:i:s', (int) $this->next_api_reset);
     }

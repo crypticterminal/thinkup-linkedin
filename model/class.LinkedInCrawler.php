@@ -1,14 +1,14 @@
 <?php
 /**
- * Twitter Crawler
+ * LinkedIn Crawler
  *
- * Retrieves tweets, replies, users, and following relationships from Twitter.com
+ * Retrieves tweets, replies, users, and following relationships from LinkedIn.com
  *
  * @TODO Complete docblocks
  * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
  *
  */
-class TwitterCrawler {
+class LinkedInCrawler {
     var $instance;
     var $api;
     var $owner_object;
@@ -29,11 +29,11 @@ class TwitterCrawler {
             $status_message = "";
             $owner_profile = str_replace("[id]", $this->instance->network_username,
             $this->api->cURL_source['show_user']);
-            list($cURL_status, $twitter_data) = $this->api->apiRequest($owner_profile);
+            list($cURL_status, $linkedin_data) = $this->api->apiRequest($owner_profile);
 
             if ($cURL_status == 200) {
                 try {
-                    $users = $this->api->parseXML($twitter_data);
+                    $users = $this->api->parseXML($linkedin_data);
                     foreach ($users as $user) {
                         $this->owner_object = new User($user, 'Owner Status');
                     }
@@ -44,7 +44,7 @@ class TwitterCrawler {
 
                         if (isset($this->owner_object->follower_count) && $this->owner_object->follower_count>0) {
                             $fcount_dao = DAOFactory::getDAO('FollowerCountDAO');
-                            $fcount_dao->insert($this->owner_object->user_id, 'twitter',
+                            $fcount_dao->insert($this->owner_object->user_id, 'linkedin',
                             $this->owner_object->follower_count);
                         }
 
@@ -72,13 +72,13 @@ class TwitterCrawler {
             while ($continue_fetching) {
                 $search_results = $this->api->cURL_source['search']."?q=".urlencode($term).
             "&result_type=recent&rpp=100&page=".$page;
-                list($cURL_status, $twitter_data) = $this->api->apiRequest($search_results, null, false);
+                list($cURL_status, $linkedin_data) = $this->api->apiRequest($search_results, null, false);
                 if ($cURL_status == 200) {
-                    $tweets = $this->api->parseJSON($twitter_data);
+                    $tweets = $this->api->parseJSON($linkedin_data);
                     $pd = DAOFactory::getDAO('PostDAO');
                     $count = 0;
                     foreach ($tweets as $tweet) {
-                        $tweet['network'] = 'twitter';
+                        $tweet['network'] = 'linkedin';
 
                         if ($pd->addPost($tweet) > 0) {
                             $count = $count + 1;
@@ -144,16 +144,16 @@ class TwitterCrawler {
                     $args["since_id"] = $this->instance->last_status_id;
                 }
 
-                list($cURL_status, $twitter_data) = $this->api->apiRequest($recent_tweets, $args);
+                list($cURL_status, $linkedin_data) = $this->api->apiRequest($recent_tweets, $args);
                 if ($cURL_status == 200) {
                     # Parse the XML file
                     try {
                         $count = 0;
-                        $tweets = $this->api->parseXML($twitter_data);
+                        $tweets = $this->api->parseXML($linkedin_data);
 
                         $pd = DAOFactory::getDAO('PostDAO');
                         foreach ($tweets as $tweet) {
-                            $tweet['network'] = 'twitter';
+                            $tweet['network'] = 'linkedin';
 
                             if ($pd->addPost($tweet, $this->owner_object, $this->logger) > 0) {
                                 $count = $count + 1;
@@ -171,11 +171,11 @@ class TwitterCrawler {
                         $this->logger->logStatus($status_message, get_class($this));
                         $status_message = "";
 
-                        //if you've got more than the Twitter API archive limit, stop looking for more tweets
+                        //if you've got more than the LinkedIn API archive limit, stop looking for more tweets
                         if ($this->instance->total_posts_in_system >= $this->api->archive_limit) {
                             $this->instance->last_page_fetched_tweets = 1;
                             $continue_fetching = false;
-                            $status_message = "More than Twitter cap of ".$this->api->archive_limit.
+                            $status_message = "More than LinkedIn cap of ".$this->api->archive_limit.
                         " already in system, moving on.";
                             $this->logger->logStatus($status_message, get_class($this));
                             $status_message = "";
@@ -239,7 +239,7 @@ class TwitterCrawler {
             } elseif (substr($u, 0, strlen('http://flic.kr/')) == 'http://flic.kr/') {
                 $is_image = 1;
             }
-            if ($ld->insert($u, $eurl, $title, $tweet['post_id'], 'twitter', $is_image)) {
+            if ($ld->insert($u, $eurl, $title, $tweet['post_id'], 'linkedin', $is_image)) {
                 $this->logger->logStatus("Inserted ".$u." (".$eurl.", ".$is_image."), into links table",
                 get_class($this));
             } else {
@@ -254,14 +254,14 @@ class TwitterCrawler {
         }
 
         if (isset($this->owner_object)) {
-            //fetch tweet from Twitter and add to DB
+            //fetch tweet from LinkedIn and add to DB
             $status_message = "";
             $tweet_deets = str_replace("[id]", $tid, $this->api->cURL_source['show_tweet']);
-            list($cURL_status, $twitter_data) = $this->api->apiRequest($tweet_deets);
+            list($cURL_status, $linkedin_data) = $this->api->apiRequest($tweet_deets);
 
             if ($cURL_status == 200) {
                 try {
-                    $tweets = $this->api->parseXML($twitter_data);
+                    $tweets = $this->api->parseXML($linkedin_data);
                     foreach ($tweets as $tweet) {
                         if ($pd->addPost($tweet, $this->owner_object, $this->logger) > 0) {
                             $status_message = 'Added replied to tweet ID '.$tid." to database.";
@@ -275,9 +275,9 @@ class TwitterCrawler {
                 }
             } elseif ($cURL_status == 404 || $cURL_status == 403) {
                 try {
-                    $e = $this->api->parseError($twitter_data);
+                    $e = $this->api->parseError($linkedin_data);
                     $ped = DAOFactory::getDAO('PostErrorDAO');
-                    $ped->insertError($tid, 'twitter', $cURL_status, $e['error'], $this->owner_object->user_id);
+                    $ped->insertError($tid, 'linkedin', $cURL_status, $e['error'], $this->owner_object->user_id);
                     $status_message = 'Error saved to tweets.';
                 }
                 catch(Exception $e) {
@@ -315,13 +315,13 @@ class TwitterCrawler {
                         $args['page'] = $this->last_page_fetched_mentions;
                     }
 
-                    list($cURL_status, $twitter_data) = $this->api->apiRequest($mentions, $args);
+                    list($cURL_status, $linkedin_data) = $this->api->apiRequest($mentions, $args);
                     if ($cURL_status > 200) {
                         $continue_fetching = false;
                     } else {
                         try {
                             $count = 0;
-                            $tweets = $this->api->parseXML($twitter_data);
+                            $tweets = $this->api->parseXML($linkedin_data);
                             if (count($tweets) == 0 && $got_newest_mentions) {# you're paged back and no new tweets
                                 $this->last_page_fetched_mentions = 1;
                                 $continue_fetching = false;
@@ -334,7 +334,7 @@ class TwitterCrawler {
 
                             $pd = DAOFactory::getDAO('PostDAO');
                             if (!isset($recentTweets)) {
-                                $recentTweets = $pd->getAllPosts($this->owner_object->user_id, 'twitter', 100);
+                                $recentTweets = $pd->getAllPosts($this->owner_object->user_id, 'linkedin', 100);
                             }
                             $count = 0;
                             foreach ($tweets as $tweet) {
@@ -415,10 +415,10 @@ class TwitterCrawler {
             if ($this->api->available && $this->api->available_api_calls_for_crawler > 0) {
                 # Get the most recent retweets
                 $rtsofme = $this->api->cURL_source['retweets_of_me'];
-                list($cURL_status, $twitter_data) = $this->api->apiRequest($rtsofme);
+                list($cURL_status, $linkedin_data) = $this->api->apiRequest($rtsofme);
                 if ($cURL_status == 200) {
                     try {
-                        $tweets = $this->api->parseXML($twitter_data);
+                        $tweets = $this->api->parseXML($linkedin_data);
                         foreach ($tweets as $tweet) {
                             $this->fetchStatusRetweets($tweet);
                         }
@@ -452,10 +452,10 @@ class TwitterCrawler {
         if ($this->api->available && $this->api->available_api_calls_for_crawler > 0) {
             # Get the most recent mentions
             $rts = str_replace("[id]", $status_id, $this->api->cURL_source['retweeted_by']);
-            list($cURL_status, $twitter_data) = $this->api->apiRequest($rts);
+            list($cURL_status, $linkedin_data) = $this->api->apiRequest($rts);
             if ($cURL_status == 200) {
                 try {
-                    $tweets = $this->api->parseXML($twitter_data);
+                    $tweets = $this->api->parseXML($linkedin_data);
                     foreach ($tweets as $tweet) {
                         $user_with_retweet = new User($tweet, 'retweets');
                         $this->fetchUserTimelineForRetweet($status, $user_with_retweet);
@@ -490,12 +490,12 @@ class TwitterCrawler {
             $args["count"] = 200;
             $args["include_rts"]="true";
 
-            list($cURL_status, $twitter_data) = $this->api->apiRequest($stream_with_retweet, $args);
+            list($cURL_status, $linkedin_data) = $this->api->apiRequest($stream_with_retweet, $args);
 
             if ($cURL_status == 200) {
                 try {
                     $count = 0;
-                    $tweets = $this->api->parseXML($twitter_data);
+                    $tweets = $this->api->parseXML($linkedin_data);
 
                     if (count($tweets) > 0) {
                         $pd = DAOFactory::getDAO('PostDAO');
@@ -557,7 +557,7 @@ class TwitterCrawler {
             }
             $args['cursor'] = strval($next_cursor);
 
-            list($cURL_status, $twitter_data) = $this->api->apiRequest($follower_ids, $args);
+            list($cURL_status, $linkedin_data) = $this->api->apiRequest($follower_ids, $args);
 
             if ($cURL_status > 200) {
                 $continue_fetching = false;
@@ -567,7 +567,7 @@ class TwitterCrawler {
                 try {
                     $status_message = "Parsing XML. ";
                     $status_message .= "Cursor ".$next_cursor.":";
-                    $ids = $this->api->parseXML($twitter_data);
+                    $ids = $this->api->parseXML($linkedin_data);
                     $next_cursor = $this->api->getNextCursor();
                     $status_message .= count($ids)." follower IDs queued to update. ";
                     $this->logger->logStatus($status_message, get_class($this));
@@ -584,14 +584,14 @@ class TwitterCrawler {
                     foreach ($ids as $id) {
 
                         # add/update follow relationship
-                        if ($fd->followExists($this->instance->network_user_id, $id['id'], 'twitter')) {
+                        if ($fd->followExists($this->instance->network_user_id, $id['id'], 'linkedin')) {
                             //update it
-                            if ($fd->update($this->instance->network_user_id, $id['id'], 'twitter',
+                            if ($fd->update($this->instance->network_user_id, $id['id'], 'linkedin',
                             Utils::getURLWithParams($follower_ids, $args)))
                             $updated_follow_count = $updated_follow_count + 1;
                         } else {
                             //insert it
-                            if ($fd->insert($this->instance->network_user_id, $id['id'], 'twitter',
+                            if ($fd->insert($this->instance->network_user_id, $id['id'], 'linkedin',
                             Utils::getURLWithParams($follower_ids, $args)))
                             $inserted_follow_count = $inserted_follow_count + 1;
                         }
@@ -601,7 +601,7 @@ class TwitterCrawler {
                     " new follows inserted.";
                 }
                 catch(Exception $e) {
-                    $status_message = 'Could not parse follower ID XML for $crawler_twitter_username';
+                    $status_message = 'Could not parse follower ID XML for $crawler_linkedin_username';
                 }
                 $this->logger->logStatus($status_message, get_class($this));
                 $status_message = "";
@@ -652,7 +652,7 @@ class TwitterCrawler {
                 $next_cursor = -1;
                 $args['cursor'] = strval($next_cursor);
 
-                list($cURL_status, $twitter_data) = $this->api->apiRequest($follower_ids, $args);
+                list($cURL_status, $linkedin_data) = $this->api->apiRequest($follower_ids, $args);
 
                 if ($cURL_status > 200) {
                     $continue_fetching = false;
@@ -662,7 +662,7 @@ class TwitterCrawler {
                     try {
                         $status_message = "Parsing XML. ";
                         $status_message .= "Cursor ".$next_cursor.":";
-                        $users = $this->api->parseXML($twitter_data);
+                        $users = $this->api->parseXML($linkedin_data);
                         $next_cursor = $this->api->getNextCursor();
                         $status_message .= count($users)." followers queued to update. ";
                         $this->logger->logStatus($status_message, get_class($this));
@@ -678,14 +678,14 @@ class TwitterCrawler {
                             $this->user_dao->updateUser($utu);
 
                             # add/update follow relationship
-                            if ($fd->followExists($this->instance->network_user_id, $utu->user_id, 'twitter')) {
+                            if ($fd->followExists($this->instance->network_user_id, $utu->user_id, 'linkedin')) {
                                 //update it
-                                if ($fd->update($this->instance->network_user_id, $utu->user_id, 'twitter',
+                                if ($fd->update($this->instance->network_user_id, $utu->user_id, 'linkedin',
                                 Utils::getURLWithParams($follower_ids, $args)))
                                 $updated_follow_count++;
                             } else {
                                 //insert it
-                                if ($fd->insert($this->instance->network_user_id, $utu->user_id, 'twitter',
+                                if ($fd->insert($this->instance->network_user_id, $utu->user_id, 'linkedin',
                                 Utils::getURLWithParams($follower_ids, $args)))
                                 $inserted_follow_count++;
                             }
@@ -695,7 +695,7 @@ class TwitterCrawler {
                     " new follows inserted.";
                     }
                     catch(Exception $e) {
-                        $status_message = 'Could not parse followers XML for $crawler_twitter_username';
+                        $status_message = 'Could not parse followers XML for $crawler_linkedin_username';
                     }
                     $this->logger->logStatus($status_message, get_class($this));
                     $status_message = "";
@@ -719,13 +719,13 @@ class TwitterCrawler {
         if (isset($this->owner_object)) {
             $fd = DAOFactory::getDAO('FollowDAO');
             $this->instance->total_friends_in_system = $fd->countTotalFriends($this->instance->network_user_id,
-            'twitter');
+            'linkedin');
 
             if ($this->instance->total_friends_in_system
             < $this->owner_object->friend_count) {
                 $this->instance->is_archive_loaded_friends = false;
                 $this->logger->logStatus($this->instance->total_friends_in_system." friends in system, ".
-                $this->owner_object->friend_count." friends according to Twitter; Friend archive is not loaded",
+                $this->owner_object->friend_count." friends according to LinkedIn; Friend archive is not loaded",
                 get_class($this));
             } else {
                 $this->instance->is_archive_loaded_friends = true;
@@ -744,7 +744,7 @@ class TwitterCrawler {
                 $next_cursor = -1;
                 $args['cursor'] = strval($next_cursor);
 
-                list($cURL_status, $twitter_data) = $this->api->apiRequest($friend_ids, $args);
+                list($cURL_status, $linkedin_data) = $this->api->apiRequest($friend_ids, $args);
 
                 if ($cURL_status > 200) {
                     $continue_fetching = false;
@@ -753,7 +753,7 @@ class TwitterCrawler {
                     try {
                         $status_message = "Parsing XML. ";
                         $status_message .= "Cursor ".$next_cursor.":";
-                        $users = $this->api->parseXML($twitter_data);
+                        $users = $this->api->parseXML($linkedin_data);
                         $next_cursor = $this->api->getNextCursor();
                         $status_message .= count($users)." friends queued to update. ";
                         $this->logger->logStatus($status_message, get_class($this));
@@ -770,14 +770,14 @@ class TwitterCrawler {
                             $this->user_dao->updateUser($utu);
 
                             # add/update follow relationship
-                            if ($fd->followExists($utu->user_id, $this->instance->network_user_id, 'twitter')) {
+                            if ($fd->followExists($utu->user_id, $this->instance->network_user_id, 'linkedin')) {
                                 //update it
-                                if ($fd->update($utu->user_id, $this->instance->network_user_id, 'twitter',
+                                if ($fd->update($utu->user_id, $this->instance->network_user_id, 'linkedin',
                                 Utils::getURLWithParams($friend_ids, $args)))
                                 $updated_follow_count++;
                             } else {
                                 //insert it
-                                if ($fd->insert($utu->user_id, $this->instance->network_user_id, 'twitter',
+                                if ($fd->insert($utu->user_id, $this->instance->network_user_id, 'linkedin',
                                 Utils::getURLWithParams($friend_ids, $args)))
                                 $inserted_follow_count++;
                             }
@@ -788,7 +788,7 @@ class TwitterCrawler {
                     " new friends inserted.";
                     }
                     catch(Exception $e) {
-                        $status_message = 'Could not parse friends XML for $crawler_twitter_username';
+                        $status_message = 'Could not parse friends XML for $crawler_linkedin_username';
                     }
                     $this->logger->logStatus($status_message, get_class($this));
                     $status_message = "";
@@ -814,7 +814,7 @@ class TwitterCrawler {
 
             $continue_fetching = true;
             while ($this->api->available && $this->api->available_api_calls_for_crawler > 0 && $continue_fetching) {
-                $stale_friend = $fd->getStalestFriend($this->owner_object->user_id, 'twitter');
+                $stale_friend = $fd->getStalestFriend($this->owner_object->user_id, 'linkedin');
                 if ($stale_friend != null) {
                     $this->logger->logStatus($stale_friend->username." is friend most need of update",
                     get_class($this));
@@ -827,12 +827,12 @@ class TwitterCrawler {
                         $args['since_id'] = $stale_friend->last_post_id;
                     }
 
-                    list($cURL_status, $twitter_data) = $this->api->apiRequest($stale_friend_tweets, $args);
+                    list($cURL_status, $linkedin_data) = $this->api->apiRequest($stale_friend_tweets, $args);
 
                     if ($cURL_status == 200) {
                         try {
                             $count = 0;
-                            $tweets = $this->api->parseXML($twitter_data);
+                            $tweets = $this->api->parseXML($linkedin_data);
 
                             if (count($tweets) > 0) {
                                 $stale_friend_updated_from_tweets = false;
@@ -877,10 +877,10 @@ class TwitterCrawler {
                         $this->fetchUserFriendsByIDs($stale_friend->user_id, $fd);
                     } elseif ($cURL_status == 401 || $cURL_status == 404) {
                         try {
-                            $e = $this->api->parseError($twitter_data);
+                            $e = $this->api->parseError($linkedin_data);
                             $ued = DAOFactory::getDAO('UserErrorDAO');
                             $ued->insertError($stale_friend->user_id, $cURL_status, $e['error'],
-                            $this->owner_object->user_id, 'twitter');
+                            $this->owner_object->user_id, 'linkedin');
                             $this->logger->logStatus('User error saved', get_class($this));
                         }
                         catch(Exception $e) {
@@ -926,7 +926,7 @@ class TwitterCrawler {
 
         if (isset($this->owner_object)) {
             $fd = DAOFactory::getDAO('FollowDAO');
-            $strays = $fd->getUnloadedFollowerDetails($this->owner_object->user_id, 'twitter');
+            $strays = $fd->getUnloadedFollowerDetails($this->owner_object->user_id, 'linkedin');
             $status_message = count($strays).' unloaded follower details to load.';
             $this->logger->logStatus($status_message, get_class($this));
 
@@ -953,7 +953,7 @@ class TwitterCrawler {
             $args['cursor'] = strval($next_cursor);
             $args['user_id'] = strval($uid);
 
-            list($cURL_status, $twitter_data) = $this->api->apiRequest($friend_ids, $args);
+            list($cURL_status, $linkedin_data) = $this->api->apiRequest($friend_ids, $args);
 
             if ($cURL_status > 200) {
                 $continue_fetching = false;
@@ -963,7 +963,7 @@ class TwitterCrawler {
 
                     $status_message = "Parsing XML. ";
                     $status_message .= "Cursor ".$next_cursor.":";
-                    $ids = $this->api->parseXML($twitter_data);
+                    $ids = $this->api->parseXML($linkedin_data);
                     $next_cursor = $this->api->getNextCursor();
                     $status_message .= count($ids)." friend IDs queued to update. ";
                     $this->logger->logStatus($status_message, get_class($this));
@@ -978,13 +978,13 @@ class TwitterCrawler {
                     foreach ($ids as $id) {
 
                         # add/update follow relationship
-                        if ($fd->followExists($id['id'], $uid, 'twitter')) {
+                        if ($fd->followExists($id['id'], $uid, 'linkedin')) {
                             //update it
-                            if ($fd->update($id['id'], $uid, 'twitter', Utils::getURLWithParams($friend_ids, $args)))
+                            if ($fd->update($id['id'], $uid, 'linkedin', Utils::getURLWithParams($friend_ids, $args)))
                             $updated_follow_count++;
                         } else {
                             //insert it
-                            if ($fd->insert($id['id'], $uid, 'twitter', Utils::getURLWithParams($friend_ids, $args)))
+                            if ($fd->insert($id['id'], $uid, 'linkedin', Utils::getURLWithParams($friend_ids, $args)))
                             $inserted_follow_count++;
                         }
                     }
@@ -1006,14 +1006,14 @@ class TwitterCrawler {
     }
 
     private function fetchAndAddUser($fid, $source) {
-        //fetch user from Twitter and add to DB
+        //fetch user from LinkedIn and add to DB
         $status_message = "";
         $u_deets = str_replace("[id]", $fid, $this->api->cURL_source['show_user']);
-        list($cURL_status, $twitter_data) = $this->api->apiRequest($u_deets);
+        list($cURL_status, $linkedin_data) = $this->api->apiRequest($u_deets);
 
         if ($cURL_status == 200) {
             try {
-                $user_arr = $this->api->parseXML($twitter_data);
+                $user_arr = $this->api->parseXML($linkedin_data);
                 $user = new User($user_arr[0], $source);
                 $this->user_dao->updateUser($user);
                 $status_message = 'Added/updated user '.$user->username." in database";
@@ -1023,9 +1023,9 @@ class TwitterCrawler {
             }
         } elseif ($cURL_status == 404) {
             try {
-                $e = $this->api->parseError($twitter_data);
+                $e = $this->api->parseError($linkedin_data);
                 $ued = DAOFactory::getDAO('UserErrorDAO');
-                $ued->insertError($fid, $cURL_status, $e['error'], $this->owner_object->user_id, 'twitter');
+                $ued->insertError($fid, $cURL_status, $e['error'], $this->owner_object->user_id, 'linkedin');
                 $status_message = 'User error saved.';
 
             }
@@ -1045,7 +1045,7 @@ class TwitterCrawler {
         $continue_fetching = true;
         while ($this->api->available && $this->api->available_api_calls_for_crawler > 0 && $continue_fetching) {
 
-            $oldfollow = $fd->getOldestFollow('twitter');
+            $oldfollow = $fd->getOldestFollow('linkedin');
 
             if ($oldfollow != null) {
 
@@ -1054,23 +1054,23 @@ class TwitterCrawler {
                 $args["source_id"] = $oldfollow["followee_id"];
                 $args["target_id"] = $oldfollow["follower_id"];
 
-                list($cURL_status, $twitter_data) = $this->api->apiRequest($friendship_call, $args);
+                list($cURL_status, $linkedin_data) = $this->api->apiRequest($friendship_call, $args);
 
                 if ($cURL_status == 200) {
                     try {
-                        $friendship = $this->api->parseXML($twitter_data);
+                        $friendship = $this->api->parseXML($linkedin_data);
                         if ($friendship['source_follows_target'] == 'true')
-                        $fd->update($oldfollow["followee_id"], $oldfollow["follower_id"], 'twitter',
+                        $fd->update($oldfollow["followee_id"], $oldfollow["follower_id"], 'linkedin',
                         Utils::getURLWithParams($friendship_call, $args));
                         else
-                        $fd->deactivate($oldfollow["followee_id"], $oldfollow["follower_id"], 'twitter',
+                        $fd->deactivate($oldfollow["followee_id"], $oldfollow["follower_id"], 'linkedin',
                         Utils::getURLWithParams($friendship_call, $args));
 
                         if ($friendship['target_follows_source'] == 'true')
-                        $fd->update($oldfollow["follower_id"], $oldfollow["followee_id"], 'twitter',
+                        $fd->update($oldfollow["follower_id"], $oldfollow["followee_id"], 'linkedin',
                         Utils::getURLWithParams($friendship_call, $args));
                         else
-                        $fd->deactivate($oldfollow["follower_id"], $oldfollow["followee_id"], 'twitter',
+                        $fd->deactivate($oldfollow["follower_id"], $oldfollow["followee_id"], 'linkedin',
                         Utils::getURLWithParams($friendship_call, $args));
 
 
