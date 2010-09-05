@@ -59,8 +59,8 @@ class LinkedInAuthController extends ThinkUpAuthController
             $profile = split("\n", $xml_response);
             
             $xml_id = str_replace("<id>", "", str_replace("</id>", "", $profile[2]));
-            $xml_firstname = str_replace("<first-name>", "", str_replace("</first-name>", "", $profile[2]));
-            $xml_lastname = str_replace("<last-name>", "", str_replace("</last-name>", "", $profile[2]));
+            $xml_firstname = str_replace("<first-name>", "", str_replace("</first-name>", "", $profile[3]));
+            $xml_lastname = str_replace("<last-name>", "", str_replace("</last-name>", "", $profile[4]));
             
             $linkedin_id = $xml_id;
             $tu = $xml_firstname . " " . $xml_lastname;
