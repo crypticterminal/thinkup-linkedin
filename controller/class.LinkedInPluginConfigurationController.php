@@ -26,7 +26,7 @@ class LinkedInPluginConfigurationController extends PluginConfigurationControlle
         
         if (isset($linkedin_consumer_key) && isset($linkedin_consumer_secret))
         {
-            $linkedin = new LinkedIn($linkedin_consumer_key, $linkedin_consumer_secret, "http://mbmccormick.com/thinkup/plugins/linkedin/auth.php");
+            $linkedin = new LinkedIn($linkedin_consumer_key, $linkedin_consumer_secret, "http://" . $_SERVER["HTTP_HOST"] . "/thinkup/" . "plugins/linkedin/auth.php");
             
             $linkedin->getRequestToken();
             $_SESSION['requestToken'] = serialize($linkedin->request_token);

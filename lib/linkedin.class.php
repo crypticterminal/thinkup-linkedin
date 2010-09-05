@@ -1,5 +1,5 @@
 <?php
-//require_once("OAuth.php");
+require_once("OAuth.php");
 
 class LinkedIn {
   public $base_url = "http://api.linkedin.com";
@@ -55,7 +55,7 @@ class LinkedIn {
     $url = $request->to_url();
     $response = $this->httpRequest($url, $headers, "GET");
     parse_str($response, $response_params);
-    if($debug) {
+    if($this->debug) {
       echo $response . "\n";
     }
     $this->access_token = new OAuthConsumer($response_params['oauth_token'], $response_params['oauth_token_secret'], 1);
@@ -71,7 +71,7 @@ class LinkedIn {
     // $auth_header = preg_replace("/Authorization\: OAuth\,/", "Authorization: OAuth ", $auth_header);
     // # Make sure there is a space between OAuth attribute
     // $auth_header = preg_replace('/\"\,/', '", ', $auth_header);
-    if ($debug) {
+    if ($this->debug) {
       echo $auth_header;
     }
     // $response will now hold the XML document
@@ -119,7 +119,7 @@ class LinkedIn {
     curl_setopt($curl, CURLOPT_URL, $url);
     curl_setopt($curl, CURLOPT_HEADER, 0);
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($curl, CURLOPT_HTTPHEADER, $auth_header); // Set the headers.
+    curl_setopt($curl, CURLOPT_HTTPHEADER, array($auth_header)); // Set the headers.
 
     if ($body) {
       curl_setopt($curl, CURLOPT_POST, 1);
