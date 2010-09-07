@@ -1,12 +1,11 @@
 <?php
+
 /**
  * LinkedIn Plugin Configuration Controller
- *
  * Handles plugin configuration requests.
- *
- * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
- *
- */
+ * @author Matt McCormick <mbmccormick[at]gmail[dot]com>
+ **/
+ 
 class LinkedInPluginConfigurationController extends PluginConfigurationController
 {
     var $owner;

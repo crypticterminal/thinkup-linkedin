@@ -1,10 +1,11 @@
 <?php
+
 /**
  * LinkedIn Auth Controller
  * Save the OAuth tokens for LinkedIn account authorization.
- * @author Gina Trapani <ginatrapani[at]gmail[dot]com>
- *
- */
+ * @author Matt McCormick <mbmccormick[at]gmail[dot]com>
+ **/
+ 
 class LinkedInAuthController extends ThinkUpAuthController
 {    
     var $is_missing_param = false;

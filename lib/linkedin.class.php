@@ -1,5 +1,14 @@
 <?php
-require_once("OAuth.php");
+
+// todo: we should not have to do this
+try
+{
+    $obj = new OAuthConsumer("test", "test", "test");
+}
+catch (Exception $e)
+{
+    require_once("OAuth.php");
+}
 
 class LinkedIn {
   public $base_url = "http://api.linkedin.com";
@@ -110,15 +119,30 @@ class LinkedIn {
     return $response;
   }
   
-  function httpRequest($url, $auth_header, $method, $body = NULL) {
+  function httpRequest($url, $auth_header = "", $method, $body = NULL) {
     if (!$method) {
       $method = "GET";
     };
+    
+    // todo: we should not have to do this
+    try
+    {
+        if (count($auth_header) == 0)
+        {
+            $auth_header = "";
+        }
+    }
+    catch (Exception $e)
+    {
+        $auth_header = "";
+    }
 
     $curl = curl_init();
     curl_setopt($curl, CURLOPT_URL, $url);
     curl_setopt($curl, CURLOPT_HEADER, 0);
-    curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1); 
+    
+    
     curl_setopt($curl, CURLOPT_HTTPHEADER, array($auth_header)); // Set the headers.
 
     if ($body) {
