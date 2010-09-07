@@ -1,7 +1,9 @@
 <?php
 
-class LinkedInPlugin implements CrawlerPlugin, WebappPlugin {
-    public function crawl() {
+class LinkedInPlugin implements CrawlerPlugin, WebappPlugin
+{
+    public function crawl()
+    {
         $logger = Logger::getInstance();
         $config = Config::getInstance();
         $id = DAOFactory::getDAO('InstanceDAO');
@@ -15,24 +17,28 @@ class LinkedInPlugin implements CrawlerPlugin, WebappPlugin {
 
         //crawl LinkedIn user profiles
         $instances = $id->getAllActiveInstancesStalestFirstByNetwork('linkedin');
-        foreach ($instances as $instance) {
-            if (!$oid->doesOwnerHaveAccess($current_owner, $instance->network_username)) {
+        foreach ($instances as $instance)
+        {
+            if (!$oid->doesOwnerHaveAccess($current_owner, $instance->network_username))
+            {
                 // Owner doesn't have access to this instance; let's not crawl it.
                 continue;
             }
             $logger->setUsername($instance->network_username);
             $tokens = $oid->getOAuthTokens($instance->id);
-            $session_key = $tokens['oauth_access_token'];
+            $access_token = $tokens['oauth_access_token'];
 
-            $linkedin = new LinkedIn($options['linkedin_consumer_key']->option_value, 
-            $options['linkedin_consumer_secret']->option_value);
+            $linkedin = new LinkedIn($options['linkedin_consumer_key']->option_value, $options['linkedin_consumer_secret']->option_value);
 
             $id->updateLastRun($instance->id);
             $crawler = new LinkedInCrawler($instance, $linkedin);
-            try {
-                $crawler->fetchInstanceUserInfo($instance->network_user_id, $session_key);
-                $crawler->fetchUserPostsAndReplies($instance->network_user_id, $session_key);
-            } catch (Exception $e) {
+            try
+            {
+                $crawler->fetchInstanceUserInfo($instance->network_user_id, $access_token);
+                $crawler->fetchUserPostsAndReplies($instance->network_user_id, $access_token);
+            }
+            catch (Exception $e)
+            {
                 $logger->logStatus('PROFILE EXCEPTION: '.$e->getMessage(), get_class($this));
             }
 
@@ -41,7 +47,8 @@ class LinkedInPlugin implements CrawlerPlugin, WebappPlugin {
 
         //crawl LinkedIn pages
         $instances = $id->getAllActiveInstancesStalestFirstByNetwork('linkedin page');
-        foreach ($instances as $instance) {
+        foreach ($instances as $instance)
+        {
             $logger->setUsername($instance->network_username);
             $tokens = $oid->getOAuthTokens($instance->id);
             $session_key = $tokens['oauth_access_token'];
@@ -52,9 +59,12 @@ class LinkedInPlugin implements CrawlerPlugin, WebappPlugin {
             $id->updateLastRun($instance->id);
             $crawler = new LinkedInCrawler($instance, $linkedin);
 
-            try {
+            try
+            {
                 $crawler->fetchPagePostsAndReplies($instance->network_user_id, $instance->network_viewer_id, $session_key);
-            } catch (Exception $e) {
+            }
+            catch (Exception $e)
+            {
                 $logger->logStatus('PAGE EXCEPTION: '.$e->getMessage(), get_class($this));
             }
             $id->save($crawler->instance, 0, $logger);
@@ -64,12 +74,14 @@ class LinkedInPlugin implements CrawlerPlugin, WebappPlugin {
 
     }
 
-    public function renderConfiguration($owner) {
+    public function renderConfiguration($owner)
+    {
         $controller = new LinkedInPluginConfigurationController($owner, 'linkedin');
         return $controller->go();
     }
 
-    public function getChildTabsUnderPosts($instance) {
+    public function getChildTabsUnderPosts($instance)
+    {
         $linkedin_data_tpl = Utils::getPluginViewDirectory('linkedin').'linkedin.inline.view.tpl';
 
         $child_tabs = array();
@@ -83,7 +95,8 @@ class LinkedInPlugin implements CrawlerPlugin, WebappPlugin {
         return $child_tabs;
     }
 
-    public function getChildTabsUnderReplies($instance) {
+    public function getChildTabsUnderReplies($instance)
+    {
         $linkedin_data_tpl = Utils::getPluginViewDirectory('linkedin').'linkedin.inline.view.tpl';
         $child_tabs = array();
 
@@ -96,7 +109,8 @@ class LinkedInPlugin implements CrawlerPlugin, WebappPlugin {
         return $child_tabs;
     }
 
-    public function getChildTabsUnderFriends($instance) {
+    public function getChildTabsUnderFriends($instance)
+    {
         $linkedin_data_tpl = Utils::getPluginViewDirectory('linkedin').'linkedin.inline.view.tpl';
         $child_tabs = array();
 
@@ -110,29 +124,28 @@ class LinkedInPlugin implements CrawlerPlugin, WebappPlugin {
         return $child_tabs;
     }
 
-    public function getChildTabsUnderFollowers($instance) {
+    public function getChildTabsUnderFollowers($instance)
+    {
         $linkedin_data_tpl = Utils::getPluginViewDirectory('linkedin').'linkedin.inline.view.tpl';
         $child_tabs = array();
 
         //Most followed
-        $mftab = new WebappTab("followers_mostfollowed", 'Most-followed', 'Followers with most followers',
-        $linkedin_data_tpl);
-        $mftabds = new WebappTabDataset("linkedin_users", 'FollowDAO', "getMostFollowedFollowers",
-        array($instance->network_user_id, 15));
+        $mftab = new WebappTab("followers_mostfollowed", 'Most-followed', 'Followers with most followers', $linkedin_data_tpl);
+        $mftabds = new WebappTabDataset("linkedin_users", 'FollowDAO', "getMostFollowedFollowers", array($instance->network_user_id, 15));
         $mftab->addDataset($mftabds);
         array_push($child_tabs, $mftab);
 
         return $child_tabs;
     }
 
-    public function getChildTabsUnderLinks($instance) {
+    public function getChildTabsUnderLinks($instance)
+    {
         $linkedin_data_tpl = Utils::getPluginViewDirectory('linkedin').'linkedin.inline.view.tpl';
         $child_tabs = array();
 
         //Links from friends
         $fltab = new WebappTab("links_from_friends", 'Links', 'Links posted on your wall', $linkedin_data_tpl);
-        $fltabds = new WebappTabDataset("links_from_friends", 'LinkDAO', "getLinksByFriends",
-        array($instance->network_user_id));
+        $fltabds = new WebappTabDataset("links_from_friends", 'LinkDAO', "getLinksByFriends", array($instance->network_user_id));
         $fltab->addDataset($fltabds);
         array_push($child_tabs, $fltab);
 

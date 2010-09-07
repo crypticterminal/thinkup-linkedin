@@ -1,5 +1,7 @@
 <?php
-class LinkedInCrawler {
+
+class LinkedInCrawler
+{
     var $instance;
     var $logger;
     var $linkedin;
@@ -7,7 +9,8 @@ class LinkedInCrawler {
     var $user_dao;
     var $pd;
 
-    public function __construct($instance, $linkedin) {
+    public function __construct($instance, $linkedin)
+    {
         $this->instance = $instance;
         $this->linkedin = $linkedin;
         $this->logger = Logger::getInstance();
@@ -16,7 +19,8 @@ class LinkedInCrawler {
         $this->pd = DAOFactory::getDAO('PostDAO');
     }
 
-    public function fetchInstanceUserInfo($uid, $session_key) {
+    public function fetchInstanceUserInfo($uid, $session_key)
+    {
         $user = $this->fetchUserInfo($uid, $session_key, "Owner Status");
         $this->owner_object = $user;
         if (isset($this->owner_object)) {
@@ -27,7 +31,8 @@ class LinkedInCrawler {
         $this->logger->logStatus($status_message, get_class($this));
     }
 
-    public function fetchUserInfo($uid, $session_key, $found_in) {
+    public function fetchUserInfo($uid, $session_key, $found_in)
+    {
         // Get owner user details and save them to DB
         $user_details = $this->linkedin->getProfile("~:(id,first-name,last-name,industry)");
 
@@ -38,20 +43,25 @@ class LinkedInCrawler {
          */
 
         $user = $this->parseUserDetails($user_details);
-        if (isset($user)) {
+        if (isset($user))
+        {
             $user["post_count"] = $this->pd->getTotalPostsByUser($uid, 'linkedin');
             $user_object = new User($user, $found_in);
             $this->user_dao->updateUser($user_object);
             return $user_object;
-        } else {
+        }
+        else
+        {
             return null;
         }
     }
 
-    public function fetchPagesUserIsFanOf($uid, $session_key) {
+    public function fetchPagesUserIsFanOf($uid, $session_key)
+    {
         $q = "SELECT page_id, name, page_url FROM page WHERE page_id IN ";
         $q .= "(SELECT page_id FROM page_fan WHERE uid=".$uid.")";
-        try{
+        try
+        {
             $pages = $this->linkedin->api_client->fql_query($q);
 
             /*
@@ -60,7 +70,9 @@ class LinkedInCrawler {
              print_r($pages);
              */
              
-        } catch (Exception $e){
+        }
+        catch (Exception $e)
+        {
             $this->logger->logStatus("Exception '".$e->getMessage()."' thrown when trying to retrieve pages for $uid",
             get_class($this));
             $pages = false;
@@ -68,8 +80,10 @@ class LinkedInCrawler {
         return $pages;
     }
 
-    private function parseUserDetails($details) {
-        if (isset($details[0])) {
+    private function parseUserDetails($details)
+    {
+        if (isset($details[0]))
+        {
             $ua = array();
             $profile = split("\n", $details[0]);
             $ua["user_name"] = str_replace("<first-name>", "", str_replace("</first-name>", "", $profile[3])) . " " . str_replace("<last-name>", "", str_replace("</last-name>", "", $profile[4]));
@@ -98,13 +112,16 @@ class LinkedInCrawler {
             // $ua["joined"] = null;
             $ua["network"] = "linkedin";
             return $ua;
-        } else {
+        }
+        else
+        {
             return null;
         }
     }
 
 
-    public function fetchUserPostsAndReplies($uid, $session_key) {
+    public function fetchUserPostsAndReplies($uid, $session_key)
+    {
         $stream = $this->linkedin->api_client->stream_get($uid, $uid, '', '', 10, $session_key, '');
 
         /*
@@ -113,32 +130,39 @@ class LinkedInCrawler {
          print_r($stream);
          */
 
-        if (isset($stream['posts']) && is_array($stream['posts']) && sizeof($stream['posts'] > 0)) {
+        if (isset($stream['posts']) && is_array($stream['posts']) && sizeof($stream['posts'] > 0))
+        {
             $this->logger->logStatus(sizeof($stream["posts"]).
             " LinkedIn posts found for user ID $uid with session key $session_key", get_class($this));
 
             $thinkup_data = $this->parseStream($stream);
             $posts = $thinkup_data["posts"];
 
-            foreach ($posts as $post) {
+            foreach ($posts as $post)
+            {
                 $added_posts = $this->pd->addPost($post);
                 $this->logger->logStatus("Added $added_posts post for ".$post["author_username"].":".$post["post_text"],
                 get_class($this));
             }
 
             $users = $thinkup_data["users"];
-            if (count($users) > 0) {
-                foreach ($users as $user) {
+            if (count($users) > 0)
+            {
+                foreach ($users as $user)
+                {
                     $this->fetchUserInfo($user["user_id"], $session_key, "Comments");
                 }
             }
-        } else {
+        }
+        else
+        {
             $this->logger->logStatus("No LinkedIn posts found for user ID $uid", get_class($this));
         }
 
     }
 
-    public function fetchPagePostsAndReplies($pid, $uid, $session_key) {
+    public function fetchPagePostsAndReplies($pid, $uid, $session_key)
+    {
         $stream = $this->linkedin->api_client->stream_get($uid, $pid, '', '', 2, $session_key, '');
 
         /*
@@ -147,17 +171,21 @@ class LinkedInCrawler {
          print_r($stream);
          */
 
-        if (isset($stream['posts']) && is_array($stream['posts']) && sizeof($stream['posts'] > 0)) {
+        if (isset($stream['posts']) && is_array($stream['posts']) && sizeof($stream['posts'] > 0))
+        {
             $this->logger->logStatus(sizeof($stream["posts"]).
             " LinkedIn posts found for page ID $pid with session key $session_key", get_class($this));
 
             $thinkup_data = $this->parseStream($stream);
             $posts = $thinkup_data["posts"];
 
-            foreach ($posts as $post) {
-                if ($post['author_username']== "" && isset($post['author_user_id'])) {
+            foreach ($posts as $post)
+            {
+                if ($post['author_username'] == "" && isset($post['author_user_id']))
+                {
                     $commenter_object = $this->fetchUserInfo($post['author_user_id'], $session_key, 'Comments');
-                    if (isset($commenter_object)) {
+                    if (isset($commenter_object))
+                    {
                         $post["author_username"] = $commenter_object->full_name;
                         $post["author_fullname"] = $commenter_object->full_name;
                         $post["author_avatar"] = $commenter_object->avatar;
@@ -170,22 +198,26 @@ class LinkedInCrawler {
             }
 
             $users = $thinkup_data["users"];
-            if (count($users) > 0) {
-                foreach ($users as $user) {
+            if (count($users) > 0)
+            {
+                foreach ($users as $user)
+                {
                     $this->fetchUserInfo($user["user_id"], $session_key, "Comments");
                 }
             }
-        } else {
+        }
+        else
+        {
             $this->logger->logStatus("No LinkedIn posts found for page ID $pid", get_class($this));
         }
-
     }
 
-
-    private function parseStream($stream) {
+    private function parseStream($stream)
+    {
         $thinkup_posts = array();
         $thinkup_users = array();
-        foreach ($stream["posts"] as $p) {
+        foreach ($stream["posts"] as $p)
+        {
             $post_id = explode("_", $p["post_id"]);
             $post_id = $post_id[1];
             $profile = $this->getProfile($p['actor_id'], $stream["profiles"]);
@@ -196,8 +228,10 @@ class LinkedInCrawler {
             array_push($thinkup_posts, $ttp);
             $post_comments = $p["comments"]["comment_list"];
             $post_comments_count = isset($p["comments"]["count"])?$p["comments"]["count"]:0;
-            if (is_array($post_comments) && sizeof($post_comments) > 0) {
-                foreach ($post_comments as $c) {
+            if (is_array($post_comments) && sizeof($post_comments) > 0)
+            {
+                foreach ($post_comments as $c)
+                {
                     $comment_id = explode("_", $c["id"]);
                     $comment_id = $comment_id[2];
                     $commenter = $this->getProfile($c['fromid'], $stream["profiles"]);
@@ -218,8 +252,10 @@ class LinkedInCrawler {
                     array_push($thinkup_users, $ttu);
                 }
             }
+            
             // collapsed comment thread
-            if ($p["comments"]["count"] > 0 && $p["comments"]["count"] > sizeof($post_comments)) {
+            if ($p["comments"]["count"] > 0 && $p["comments"]["count"] > sizeof($post_comments))
+            {
                 $comments_stream = $this->linkedin->api_client->fql_query(
                 'SELECT xid, fromid, time, text, id FROM comment WHERE object_id='.$post_id);
                 /*
@@ -227,8 +263,10 @@ class LinkedInCrawler {
                  echo "SERIALIZED STREAM FOR POST $post_id STARTING NOW:\n".$serialized."\n SERIALIZING ENDING NOW\n";
                  print_r($comments_stream);
                  */
-                if (isset($comments_stream) && is_array($comments_stream)) {
-                    foreach ($comments_stream as $c) {
+                if (isset($comments_stream) && is_array($comments_stream))
+                {
+                    foreach ($comments_stream as $c)
+                    {
                         $comment_id = explode("_", $c["id"]);
                         $comment_id = $comment_id[1];
                         //Get posts
@@ -246,9 +284,12 @@ class LinkedInCrawler {
         return array("posts"=>$thinkup_posts, "users"=>$thinkup_users);
     }
 
-    private function getProfile($userid, $profiles) {
-        foreach ($profiles as $p) {
-            if ($p['id'] == $userid) {
+    private function getProfile($userid, $profiles)
+    {
+        foreach ($profiles as $p)
+        {
+            if ($p['id'] == $userid)
+            {
                 return $p;
             }
         }
