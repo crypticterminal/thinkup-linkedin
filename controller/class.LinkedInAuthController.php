@@ -19,8 +19,8 @@ class LinkedInAuthController extends ThinkUpAuthController
         
         // if (!isset($_REQUEST['oauth_verifier']))
         // {
-            // $this->addInfoMessage('Verifier not set.');
-            // $this->is_missing_param = true;
+               // $this->addInfoMessage('Verifier not set.');
+               // $this->is_missing_param = true;
         // }
     }
 
@@ -33,7 +33,7 @@ class LinkedInAuthController extends ThinkUpAuthController
             $plugin_option_dao = DAOFactory::GetDAO('PluginOptionDAO');
             $options = $plugin_option_dao->getOptionsHash('linkedin', true); //get cached
 
-            $linkedin = new LinkedIn($options['linkedin_consumer_key'], $options['linkedin_consumer_secret'], "http://" . $_SERVER["HTTP_HOST"] . "/thinkup/" . "plugins/linkedin/auth.php");
+            $linkedin = new LinkedIn($options['linkedin_consumer_key']->option_value, $options['linkedin_consumer_secret']->option_value, "http://" . $_SERVER["HTTP_HOST"] . "/thinkup/" . "plugins/linkedin/auth.php");
             
             if (isset($_REQUEST['oauth_verifier']))
             {
@@ -54,13 +54,12 @@ class LinkedInAuthController extends ThinkUpAuthController
                 $linkedin->access_token = unserialize($_SESSION['oauth_access_token']);
             }
             
-            $xml_response = $linkedin->getProfile("~:(id,first-name,last-name,industry)");
-            die($xml_response);
+            $xml_response = $linkedin->getProfile("~:(id,first-name,last-name)");
             $profile = split("\n", $xml_response);
             
-            $xml_id = str_replace("<id>", "", str_replace("</id>", "", $profile[2]));
-            $xml_firstname = str_replace("<first-name>", "", str_replace("</first-name>", "", $profile[3]));
-            $xml_lastname = str_replace("<last-name>", "", str_replace("</last-name>", "", $profile[4]));
+            $xml_id = trim(str_replace("<id>", "", str_replace("</id>", "", $profile[2])));
+            $xml_firstname = trim(str_replace("<first-name>", "", str_replace("</first-name>", "", $profile[3])));
+            $xml_lastname = trim(str_replace("<last-name>", "", str_replace("</last-name>", "", $profile[4])));
             
             $linkedin_id = $xml_id;
             $tu = $xml_firstname . " " . $xml_lastname;
@@ -133,5 +132,4 @@ class LinkedInAuthController extends ThinkUpAuthController
         
         return $this->generateView();
     }
-
 }

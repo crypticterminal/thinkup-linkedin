@@ -66,58 +66,69 @@ class LinkedInPluginConfigurationController extends PluginConfigurationControlle
         $this->addPluginOption(self::FORM_TEXT_ELEMENT, $linkedin_consumer_secret);
     }
     
-    protected static function send_request($request, $url, $method, $data = NULL) {
-	  // check for cURL
-	  if(extension_loaded('curl')) {
-      // start cURL, checking for a successful initiation
-      if($handle = curl_init()) {
-        // set cURL options, based on parameters passed
-  	    curl_setopt($handle, CURLOPT_HEADER, 0);
-        curl_setopt($handle, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($handle, CURLOPT_SSL_VERIFYPEER, 0);
-        curl_setopt($handle, CURLOPT_URL, $url);
-        
-        // check the method we are using to communicate with LinkedIn
-        switch($method) {
-          case 'DELETE':
-            curl_setopt($handle, CURLOPT_CUSTOMREQUEST, $method);
-            break;
-          case 'POST':
-          case 'PUT':
-            curl_setopt($handle, CURLOPT_POST, 1);
-            curl_setopt($handle, CURLOPT_CUSTOMREQUEST, $method);
-            break;
+    protected static function send_request($request, $url, $method, $data = NULL)
+    {
+        // check for cURL
+        if(extension_loaded('curl'))
+        {
+            // start cURL, checking for a successful initiation
+            if($handle = curl_init())
+            {
+                // set cURL options, based on parameters passed
+                curl_setopt($handle, CURLOPT_HEADER, 0);
+                curl_setopt($handle, CURLOPT_RETURNTRANSFER, 1);
+                curl_setopt($handle, CURLOPT_SSL_VERIFYPEER, 0);
+                curl_setopt($handle, CURLOPT_URL, $url);
+
+                // check the method we are using to communicate with LinkedIn
+                switch($method)
+                {
+                    case 'DELETE':
+                        curl_setopt($handle, CURLOPT_CUSTOMREQUEST, $method);
+                        break;
+                    case 'POST':
+                    case 'PUT':
+                        curl_setopt($handle, CURLOPT_POST, 1);
+                        curl_setopt($handle, CURLOPT_CUSTOMREQUEST, $method);
+                        break;
+                }
+
+                // check if we are sending data to LinkedIn 
+                if(is_null($data))
+                {
+                    curl_setopt($handle, CURLOPT_HTTPHEADER, array(
+                    $request->to_header()
+                    ));
+                }
+                else
+                {
+                    curl_setopt($handle, CURLOPT_POSTFIELDS, $data);
+                    curl_setopt($handle, CURLOPT_HTTPHEADER, array(
+                    $request->to_header(), 
+                    'Content-Type: text/xml; charset=UTF-8'
+                    ));
+                }
+
+                // gather the response
+                $return_data['linkedin'] = curl_exec($handle);
+                $return_data['info'] = curl_getinfo($handle);
+
+                // close cURL connection
+                curl_close($handle);
+
+                // no exceptions thrown, return the data
+                return $return_data;
+            }
+            else
+            {
+                // cURL failed to start
+                throw new LinkedInException('send_request: cURL did not initialize properly.');
+            }
         }
-        
-        // check if we are sending data to LinkedIn 
-        if(is_null($data)) {
-          curl_setopt($handle, CURLOPT_HTTPHEADER, array(
-            $request->to_header()
-          ));
-        } else {
-          curl_setopt($handle, CURLOPT_POSTFIELDS, $data);
-          curl_setopt($handle, CURLOPT_HTTPHEADER, array(
-            $request->to_header(), 
-            'Content-Type: text/xml; charset=UTF-8'
-          ));
+        else
+        {
+            // cURL not present
+            throw new LinkedInException('send_request: PHP cURL extension does not appear to be loaded/present.');
         }
-        
-        // gather the response
-        $return_data['linkedin']  = curl_exec($handle);
-        $return_data['info']      = curl_getinfo($handle);
-        
-        // close cURL connection
-        curl_close($handle);
-        
-        // no exceptions thrown, return the data
-        return $return_data;
-      } else {
-        // cURL failed to start
-        throw new LinkedInException('send_request: cURL did not initialize properly.');
-      }
-    } else {
-      // cURL not present
-      throw new LinkedInException('send_request: PHP cURL extension does not appear to be loaded/present.');
-    }
 	}
 }
